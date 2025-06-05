@@ -1,12 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, orderBy, query } from 'firebase/firestore';
 import { db } from '@/firebase/config';
 
 type Registro = {
   nombre: string;
-  tipo: string;
+  tipo: 'entrada' | 'salida';
   hora: string;
   metodo: string;
 };
@@ -16,7 +16,8 @@ export default function RegistrosPage() {
 
   useEffect(() => {
     const fetchRegistros = async () => {
-      const snapshot = await getDocs(collection(db, 'registros'));
+      const q = query(collection(db, 'registros'), orderBy('hora', 'desc'));
+      const snapshot = await getDocs(q);
       const datos = snapshot.docs.map(doc => doc.data() as Registro);
       setRegistros(datos);
     };
@@ -24,28 +25,35 @@ export default function RegistrosPage() {
   }, []);
 
   return (
-    <main className="p-10">
-      <h1 className="text-2xl font-bold mb-4">Registros de Ingreso/Salida</h1>
-      <table className="w-full border">
-        <thead>
-          <tr className="bg-gray-200">
-            <th className="p-2 border">Nombre</th>
-            <th className="p-2 border">Tipo</th>
-            <th className="p-2 border">Hora</th>
-            <th className="p-2 border">Método</th>
-          </tr>
-        </thead>
-        <tbody>
-          {registros.map((r, index) => (
-            <tr key={index} className="text-center">
-              <td className="p-2 border">{r.nombre}</td>
-              <td className="p-2 border">{r.tipo}</td>
-              <td className="p-2 border">{new Date(r.hora).toLocaleString()}</td>
-              <td className="p-2 border">{r.metodo}</td>
+    <main className="p-10 min-h-screen bg-white text-gray-800">
+      <h1 className="text-2xl font-bold mb-6 text-center text-blue-700">Historial de Registros</h1>
+
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm border border-gray-300 rounded shadow">
+          <thead className="bg-blue-100 text-gray-700">
+            <tr>
+              <th className="py-2 px-4 border border-gray-300">Nombre</th>
+              <th className="py-2 px-4 border border-gray-300">Tipo</th>
+              <th className="py-2 px-4 border border-gray-300">Hora</th>
+              <th className="py-2 px-4 border border-gray-300">Método</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {registros.map((r, index) => (
+              <tr key={index} className="text-center border-b border-gray-200 hover:bg-gray-50">
+                <td className="py-2 px-4 border border-gray-300">{r.nombre}</td>
+                <td className={`py-2 px-4 border border-gray-300 font-semibold ${
+                  r.tipo === 'entrada' ? 'text-green-600' : 'text-red-600'
+                }`}>
+                  {r.tipo === 'entrada' ? '🔓 Entrada' : '🔒 Salida'}
+                </td>
+                <td className="py-2 px-4 border border-gray-300">{new Date(r.hora).toLocaleString()}</td>
+                <td className="py-2 px-4 border border-gray-300">{r.metodo}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </main>
   );
 }
