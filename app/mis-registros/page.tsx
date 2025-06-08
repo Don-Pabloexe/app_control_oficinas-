@@ -6,7 +6,7 @@ import { collection, getDocs, query, where, orderBy } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 
 type Registro = {
-  nombre: string;
+  usuario: string;
   tipo: 'entrada' | 'salida';
   hora: string;
   metodo: string;
@@ -20,16 +20,17 @@ export default function MisRegistros() {
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
       if (user?.email) {
-        setUsuario(user.email);
-        const q = query(
-          collection(db, 'registros'),
-          where('nombre', '==', user.email),
-          orderBy('hora', 'desc')
-        );
-        const snapshot = await getDocs(q);
-        const datos = snapshot.docs.map(doc => doc.data() as Registro);
-        setRegistros(datos);
-      } else {
+  setUsuario(user.email);
+  const q = query(
+    collection(db, 'registros'),
+    where('usuario', '==', user.email),
+    orderBy('hora', 'desc')
+  );
+  const snapshot = await getDocs(q);
+  const datos = snapshot.docs.map(doc => doc.data() as Registro);
+  setRegistros(datos);
+}
+ else {
         router.push("/login");
       }
     });

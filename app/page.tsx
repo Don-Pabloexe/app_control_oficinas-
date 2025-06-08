@@ -61,13 +61,15 @@ export default function Home() {
         {/* Botones */}
         <div className="flex flex-col gap-4 w-full">
           <button
-            onClick={() => registrar("entrada")}
+            onClick={() => router.push("/escanear?tipo=entrada")}
+
             className="w-full py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded transition"
           >
             Registrar Entrada
           </button>
           <button
-            onClick={() => registrar("salida")}
+            onClick={() => router.push("/escanear?tipo=salida")}
+
             className="w-full py-2 bg-red-600 hover:bg-red-700 text-white font-semibold rounded transition"
           >
             Registrar Salida
