@@ -5,7 +5,7 @@ import { collection, getDocs, orderBy, query } from 'firebase/firestore';
 import { db } from '@/firebase/config';
 
 type Registro = {
-  nombre: string;
+  usuario: string;
   tipo: 'entrada' | 'salida';
   hora: string;
   metodo: string;
@@ -32,7 +32,7 @@ export default function RegistrosPage() {
         <table className="w-full text-sm border border-gray-300 rounded shadow">
           <thead className="bg-blue-100 text-gray-700">
             <tr>
-              <th className="py-2 px-4 border border-gray-300">Nombre</th>
+              <th className="py-2 px-4 border border-gray-300">Usuario</th>
               <th className="py-2 px-4 border border-gray-300">Tipo</th>
               <th className="py-2 px-4 border border-gray-300">Hora</th>
               <th className="py-2 px-4 border border-gray-300">Método</th>
@@ -41,13 +41,15 @@ export default function RegistrosPage() {
           <tbody>
             {registros.map((r, index) => (
               <tr key={index} className="text-center border-b border-gray-200 hover:bg-gray-50">
-                <td className="py-2 px-4 border border-gray-300">{r.nombre}</td>
+                <td className="py-2 px-4 border border-gray-300">{r.usuario}</td>
                 <td className={`py-2 px-4 border border-gray-300 font-semibold ${
                   r.tipo === 'entrada' ? 'text-green-600' : 'text-red-600'
                 }`}>
                   {r.tipo === 'entrada' ? '🔓 Entrada' : '🔒 Salida'}
                 </td>
-                <td className="py-2 px-4 border border-gray-300">{new Date(r.hora).toLocaleString()}</td>
+                <td className="py-2 px-4 border border-gray-300">
+                  {new Date(r.hora).toLocaleString()}
+                </td>
                 <td className="py-2 px-4 border border-gray-300">{r.metodo}</td>
               </tr>
             ))}

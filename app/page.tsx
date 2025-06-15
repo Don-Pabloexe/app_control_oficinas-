@@ -8,7 +8,6 @@ import { useRouter } from "next/navigation";
 export default function Home() {
   const [usuario, setUsuario] = useState<string | null>(null);
   const [horaActual, setHoraActual] = useState<string>("");
-  const [codigoQR, setCodigoQR] = useState<string>("");  // Nuevo estado
   const router = useRouter();
 
   useEffect(() => {
@@ -32,7 +31,6 @@ export default function Home() {
 
   const registrar = async (tipo: "entrada" | "salida") => {
     const hora = new Date().toISOString();
-    const metodo = codigoQR.trim() !== "" ? `QR:${codigoQR}` : "QR";
     await fetch("/api/registro", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -40,11 +38,10 @@ export default function Home() {
         nombre: usuario,
         tipo,
         hora,
-        metodo
+        metodo: "QR"
       })
     });
-    alert(`Registro de ${tipo} exitoso con código: ${codigoQR || "N/A"}`);
-    setCodigoQR("");  // Limpia el campo
+    alert(`Registro de ${tipo} exitoso`);
   };
 
   const cerrarSesion = async () => {
@@ -58,27 +55,21 @@ export default function Home() {
         <h1 className="text-2xl font-bold text-blue-700 mb-2">Bienvenido</h1>
         <p className="text-blue-700 font-semibold break-words mb-4">{usuario}</p>
 
+        {/* Hora en tiempo real */}
         <p className="text-lg font-mono text-gray-600 mb-6">Hora actual: {horaActual}</p>
-
-        {/* 🆕 Campo para código QR simulado */}
-        <input
-          type="text"
-          placeholder="Simular código QR"
-          className="w-full mb-4 p-2 border rounded border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400"
-          value={codigoQR}
-          onChange={(e) => setCodigoQR(e.target.value)}
-        />
 
         {/* Botones */}
         <div className="flex flex-col gap-4 w-full">
           <button
-            onClick={() => registrar("entrada")}
+            onClick={() => router.push("/escanear?tipo=entrada")}
+
             className="w-full py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded transition"
           >
             Registrar Entrada
           </button>
           <button
-            onClick={() => registrar("salida")}
+            onClick={() => router.push("/escanear?tipo=salida")}
+
             className="w-full py-2 bg-red-600 hover:bg-red-700 text-white font-semibold rounded transition"
           >
             Registrar Salida
