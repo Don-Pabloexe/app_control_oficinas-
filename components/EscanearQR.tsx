@@ -19,8 +19,8 @@ export default function LectorQR({ tipo }: { tipo: 'entrada' | 'salida' }) {
   const [resultado, setResultado] = useState('');
   const [mensaje, setMensaje] = useState('');
   const router = useRouter();
-  const codeReader = useRef(new BrowserQRCodeReader()).current; // ✅ mantener instancia estable
-  const yaEscaneado = useRef(false); // ✅ evita múltiples registros
+  const codeReader = useRef(new BrowserQRCodeReader()).current;
+  const yaEscaneado = useRef(false);
 
   useEffect(() => {
     const auth = getAuth();
@@ -28,57 +28,71 @@ export default function LectorQR({ tipo }: { tipo: 'entrada' | 'salida' }) {
 
     const iniciar = async () => {
       try {
-        const devices = await BrowserQRCodeReader.listVideoInputDevices();
-        const camara = devices[0]?.deviceId;
+        alert("Necesitamos permiso para usar tu cámara. Asegúrate de aceptarlo en la siguiente ventana.");
 
-        if (camara && videoRef.current) {
-          const stream = await navigator.mediaDevices.getUserMedia({
-            video: { deviceId: camara },
+        let stream: MediaStream;
+
+        try {
+          // Intentar usar cámara trasera
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: { exact: 'environment' } }
           });
+        } catch (error) {
+          console.warn("No se pudo acceder a la cámara trasera. Usando cámara predeterminada.", error);
 
-          streamRef.current = stream;
+          const devices = await BrowserQRCodeReader.listVideoInputDevices();
+          const camara = devices[0]?.deviceId;
+
+          if (!camara) throw new Error("No se encontró ninguna cámara");
+
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: { deviceId: camara }
+          });
+        }
+
+        streamRef.current = stream;
+
+        if (videoRef.current) {
           videoRef.current.srcObject = stream;
 
           await codeReader.decodeFromVideoDevice(
-  camara,
-  videoRef.current,
-  async (result, err) => {
-    if (result && !yaEscaneado.current) {
-      yaEscaneado.current = true; // ⛔ Evita múltiples escaneos
+            undefined,
+            videoRef.current,
+            async (result, err) => {
+              if (result && !yaEscaneado.current) {
+                yaEscaneado.current = true;
 
-      const qrLeido = result.getText();
-      setResultado(qrLeido);
+                const qrLeido = result.getText();
+                setResultado(qrLeido);
 
-      const qrDocRef = doc(db, 'qrs', 'activo');
-      const qrSnap = await getDoc(qrDocRef);
+                const qrDocRef = doc(db, 'qrs', 'activo');
+                const qrSnap = await getDoc(qrDocRef);
 
-      if (qrSnap.exists()) {
-        const { token, estado, timestamp } = qrSnap.data();
-        const ahora = new Date();
-        const fechaToken = new Date(timestamp);
-        const segundosPasados = (ahora.getTime() - fechaToken.getTime()) / 1000;
+                if (qrSnap.exists()) {
+                  const { token, estado, timestamp } = qrSnap.data();
+                  const ahora = new Date();
+                  const fechaToken = new Date(timestamp);
+                  const segundosPasados = (ahora.getTime() - fechaToken.getTime()) / 1000;
 
-        if (qrLeido === token && estado === 'activo' && segundosPasados < 15) {
-          await addDoc(collection(db, 'registros'), {
-            usuario: user?.email ?? 'invitado',
-            hora: ahora.toISOString(),
-            tipo,
-            metodo: 'QR',
-          });
+                  if (qrLeido === token && estado === 'activo' && segundosPasados < 15) {
+                    await addDoc(collection(db, 'registros'), {
+                      usuario: user?.email ?? 'invitado',
+                      hora: ahora.toISOString(),
+                      tipo,
+                      metodo: 'QR',
+                    });
 
-          await updateDoc(qrDocRef, { estado: 'usado' });
-          setMensaje('✅ Acceso registrado correctamente');
-
-          setTimeout(() => router.push('/'), 1500);
-        } else {
-          setMensaje('❌ Código QR inválido o expirado');
-          yaEscaneado.current = false; // Permitir reintento
-        }
-      }
-    }
-  }
-);
-
+                    await updateDoc(qrDocRef, { estado: 'usado' });
+                    setMensaje('✅ Acceso registrado correctamente');
+                    setTimeout(() => router.push('/'), 1500);
+                  } else {
+                    setMensaje('❌ Código QR inválido o expirado');
+                    yaEscaneado.current = false;
+                  }
+                }
+              }
+            }
+          );
         }
       } catch (err) {
         console.error('Error al iniciar cámara', err);
@@ -89,10 +103,8 @@ export default function LectorQR({ tipo }: { tipo: 'entrada' | 'salida' }) {
     iniciar();
 
     return () => {
-  streamRef.current?.getTracks().forEach((track) => track.stop()); // ✅ Detiene la cámara
-  // ❌ No uses codeReader.reset() porque no existe
-};
-
+      streamRef.current?.getTracks().forEach((track) => track.stop());
+    };
   }, []);
 
   return (
