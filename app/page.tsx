@@ -29,21 +29,6 @@ export default function Home() {
     return () => clearInterval(interval);
   }, []);
 
-  const registrar = async (tipo: "entrada" | "salida") => {
-    const hora = new Date().toISOString();
-    await fetch("/api/registro", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        nombre: usuario,
-        tipo,
-        hora,
-        metodo: "QR"
-      })
-    });
-    alert(`Registro de ${tipo} exitoso`);
-  };
-
   const cerrarSesion = async () => {
     await signOut(auth);
     router.push("/login");

@@ -19,8 +19,8 @@ export default function LectorQR({ tipo }: { tipo: 'entrada' | 'salida' }) {
   const [resultado, setResultado] = useState('');
   const [mensaje, setMensaje] = useState('');
   const router = useRouter();
-  const codeReader = useRef(new BrowserQRCodeReader()).current; // ✅ mantener instancia estable
-  const yaEscaneado = useRef(false); // ✅ evita múltiples registros
+  const codeReader = useRef(new BrowserQRCodeReader()).current;
+  const yaEscaneado = useRef(false);
 
   useEffect(() => {
     const auth = getAuth();
@@ -40,45 +40,53 @@ export default function LectorQR({ tipo }: { tipo: 'entrada' | 'salida' }) {
           videoRef.current.srcObject = stream;
 
           await codeReader.decodeFromVideoDevice(
-  camara,
-  videoRef.current,
-  async (result, err) => {
-    if (result && !yaEscaneado.current) {
-      yaEscaneado.current = true; // ⛔ Evita múltiples escaneos
+            camara,
+            videoRef.current,
+            async (result, err) => {
+              if (result && !yaEscaneado.current) {
+                yaEscaneado.current = true;
 
-      const qrLeido = result.getText();
-      setResultado(qrLeido);
+                const qrLeido = result.getText();
+                setResultado(qrLeido);
 
-      const qrDocRef = doc(db, 'qrs', 'activo');
-      const qrSnap = await getDoc(qrDocRef);
+                const qrDocRef = doc(db, 'qrs', 'activo');
+                const qrSnap = await getDoc(qrDocRef);
 
-      if (qrSnap.exists()) {
-        const { token, estado, timestamp } = qrSnap.data();
-        const ahora = new Date();
-        const fechaToken = new Date(timestamp);
-        const segundosPasados = (ahora.getTime() - fechaToken.getTime()) / 1000;
+                if (qrSnap.exists()) {
+                  const { token, estado, timestamp } = qrSnap.data();
+                  const ahora = new Date();
+                  const fechaToken = new Date(timestamp);
+                  const segundosPasados =
+                    (ahora.getTime() - fechaToken.getTime()) / 1000;
 
-        if (qrLeido === token && estado === 'activo' && segundosPasados < 15) {
-          await addDoc(collection(db, 'registros'), {
-            usuario: user?.email ?? 'invitado',
-            hora: ahora.toISOString(),
-            tipo,
-            metodo: 'QR',
-          });
+                  if (
+                    qrLeido === token &&
+                    estado === 'activo' &&
+                    segundosPasados < 15
+                  ) {
+                    await addDoc(collection(db, 'registros'), {
+                      usuario: user?.email ?? 'invitado',
+                      hora: ahora.toISOString(),
+                      tipo,
+                      metodo: 'QR',
+                    });
 
-          await updateDoc(qrDocRef, { estado: 'usado' });
-          setMensaje('✅ Acceso registrado correctamente');
+                    await updateDoc(qrDocRef, { estado: 'usado' });
+                    setMensaje('✅ Acceso registrado correctamente');
 
-          setTimeout(() => router.push('/'), 1500);
-        } else {
-          setMensaje('❌ Código QR inválido o expirado');
-          yaEscaneado.current = false; // Permitir reintento
-        }
-      }
-    }
-  }
-);
+                    setTimeout(() => router.push('/'), 1500);
+                  } else {
+                    setMensaje('❌ Código QR inválido o expirado');
+                    yaEscaneado.current = false;
+                  }
+                }
+              }
 
+              if (err) {
+                console.error('Error en decodificación de QR:', err);
+              }
+            }
+          );
         }
       } catch (err) {
         console.error('Error al iniciar cámara', err);
@@ -89,11 +97,9 @@ export default function LectorQR({ tipo }: { tipo: 'entrada' | 'salida' }) {
     iniciar();
 
     return () => {
-  streamRef.current?.getTracks().forEach((track) => track.stop()); // ✅ Detiene la cámara
-  // ❌ No uses codeReader.reset() porque no existe
-};
-
-  }, []);
+      streamRef.current?.getTracks().forEach((track) => track.stop());
+    };
+  }, [codeReader, router, tipo]);
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-white">
