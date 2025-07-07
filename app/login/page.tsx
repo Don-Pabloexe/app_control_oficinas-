@@ -16,35 +16,44 @@ export default function LoginPage() {
     setError(""); // Limpia errores anteriores
 
     try {
-      // 1. Iniciar sesión con Autenticación de Firebase
       const userCredential = await signInWithEmailAndPassword(auth, email, clave);
       const user = userCredential.user;
 
-      // 2. Buscar el documento del usuario en Firestore para obtener su rol
       const userDocRef = doc(db, "users", user.uid);
       const userDocSnap = await getDoc(userDocRef);
 
-      // 3. Redirigir basado en el rol del usuario
       if (userDocSnap.exists() && userDocSnap.data().role === 'admin') {
-        // Si el documento existe y el rol es 'admin', va al panel de admin
         router.push("/registros");
       } else {
-        // Para cualquier otro caso (rol de 'user' o si no tiene rol definido)
         router.push("/");
       }
 
-    } catch (err: any) {
-      // Manejo de errores de autenticación
-      if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
-        setError("Correo o contraseña incorrectos.");
+    } catch (err: unknown) {
+      if (
+        typeof err === 'object' &&
+        err !== null &&
+        'code' in err &&
+        typeof (err as { code: string }).code === 'string'
+      ) {
+        const errorCode = (err as { code: string }).code;
+
+        if (
+          errorCode === 'auth/user-not-found' ||
+          errorCode === 'auth/wrong-password' ||
+          errorCode === 'auth/invalid-credential'
+        ) {
+          setError("Correo o contraseña incorrectos.");
+        } else {
+          setError("Ocurrió un error inesperado.");
+          console.error("Error de inicio de sesión:", err);
+        }
       } else {
         setError("Ocurrió un error inesperado.");
-        console.error("Error de inicio de sesión:", err);
+        console.error("Error desconocido:", err);
       }
     }
   };
 
-  // Función para permitir el inicio de sesión presionando "Enter"
   const handleKeyPress = (event: React.KeyboardEvent) => {
     if (event.key === 'Enter') {
       login();
